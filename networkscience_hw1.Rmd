@@ -1,0 +1,251 @@
+---
+title: "Network Science Homework 1"
+author: "Arghya Kannadaguli (ak5357)"
+date: "2025-01-30"
+output: html_document
+---
+
+**Assignment Description:** Find a real-world network and perform an analysis of basic characteristics of the network, including degree distribution, diameters, clustering coefficient, number of connected components, size of the largest component, etc.
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  message = FALSE,
+  warning = FALSE)
+```
+
+```{r libraries}
+library(igraph)
+library(tidyverse)
+library(ggplot2)
+```
+
+## **About the Data:**
+
+_**Physicians** Network Dataset_
+
+"This directed network captures innovation spread among 246 physicians in for towns in Illinois, Peoria, Bloomington, Quincy and Galesburg. The data was collected in 1966. A node represents a physician and an edge between two physicians shows that the left physician told that the right physician is his friend or that he turns to the right physician if he needs advice or is interested in a discussion. There always only exists one edge between two nodes even if more than one of the listed conditions are true."
+
+_Data Source: [The Konnect Project](http://konect.cc/networks/moreno_innovation/)_
+
+## **Data Import**
+
+_Find a real-world network._
+
+```{r data_import}
+physician_edgelist = 
+  readr::read_delim("data/moreno_innovation/out.moreno_innovation_innovation", skip = 1) |> 
+  janitor::remove_empty(which = "cols") |> 
+  janitor::clean_names() |> 
+  rename(node1 = percent, node2 = x1098)
+
+physician_graph = 
+  as.matrix(physician_edgelist) |> 
+  graph_from_edgelist()
+```
+
+## **Basic Analysis**
+_Perform an analysis of basic characteristics of the network._
+```{r basic_characteristics}
+n_edges = ecount(physician_graph)
+n_nodes = vcount(physician_graph)
+```
+
+The physicians network has **`r n_nodes` nodes** and **`r n_edges` edges**.
+
+#### **Degree distribution**
+
+_Histogram_
+```{r degree_histogram}
+physician_degrees = degree(physician_graph)
+hist(physician_degrees,
+     col = "lightpink",
+     border = "maroon",
+     xlab = "Vertex Degree",
+     ylab = "Frequency",
+     main = "Degree Distribution"
+     )
+```
+
+_Plotting Degree Distribution in a log-log scale_
+```{r message = TRUE}
+# Get the degree distribution
+physician_dd = degree_distribution(physician_graph)
+
+# Get the range of degrees, starting from 0
+degree_range = 0:max(physician_degrees)
+
+# Logical vector of non-zero-frequency degree values
+ind = (physician_dd != 0)
+
+# Generate base-R plot
+plot(
+  degree_range[ind],
+  physician_dd[ind],
+  log = "xy",
+  col = "maroon",
+  xlab = "Log-Degree",
+  ylab = "Log-Intensity",
+  main = "Log-Log Degree Distribution"
+)
+
+# Generate ggplot for fun
+tibble(
+  `Log Degree` = degree_range[ind],
+  `Log Intensity` = physician_dd[ind]
+) |> 
+  ggplot(aes(x = `Log Degree`, y = `Log Intensity`)) +
+  geom_point(col = "maroon") +
+  labs(
+    title = "Log-Log Degree Distribution"
+  )
+```
+
+_Fit a Power-Law Distribution_
+
+```{r power_law_fit_1}
+fit = fit_power_law(physician_degrees)
+alpha = fit$alpha
+xmin = fit$xmin
+xmax = max(physician_degrees)
+```
+
+The power-law exponent is **`r alpha`**. The xmin is **`r xmin`** and xmax is **`r xmax`**.
+
+```{r power_law_fit_2}
+# Add a line to the log-log plot
+x = seq(from = xmin, to = xmax)
+y = x^(-alpha)
+
+# Normalization
+y = y/sum(y) *(sum(physician_degrees>=xmin)/length(physician_degrees))
+
+# Replot with power-fit line
+plot(
+  degree_range[ind],
+  physician_dd[ind],
+  log = "xy",
+  col = "maroon",
+  xlab = "Log-Degree",
+  ylab = "Log-Intensity",
+  main = "Log-Log Degree Distribution"
+)
+
+# Add power-law fit line
+lines(x, y)
+```
+
+#### **Number of Connected Components**
+```{r components_1, message = TRUE}
+# Check if network is connected
+is_connected(physician_graph)
+```
+
+The network is not fully connected.
+
+```{r components_2}
+# Find all components
+comps = decompose(physician_graph)
+
+# How many components
+n_comps = length(comps)
+
+# Compute sizes of all components
+comps_info_df = comps |> 
+  sapply(vcount) |> 
+  tibble() |> 
+  rename(comp_size = `sapply(comps, vcount)`) |> 
+  arrange(-comp_size) |> 
+  mutate(
+    id = row_number(),
+    comp_frc = paste0(comp_size, "/", n_nodes),
+    comp_pct = 100*comp_size/n_nodes) |> 
+  relocate(id)
+```
+
+There are **`r n_comps` components** in the Physicians network. The sizes of the networks are listed below. The largest component has **`r max(select(comps_info_df, comp_size))` nodes**.
+
+```{r components_3, message = TRUE}
+comps_info_df |> 
+  knitr::kable(
+    col.names = c("id", "Component Size", "Fraction of Total Nodes", "Percent (%) of Total Nodes"),
+    align = "r",
+    digits = 1)
+```
+
+
+#### **Diameters**
+
+_Find the average shortest path length in each component._
+```{r diameters_1}
+comps_info_df = comps_info_df |> 
+  mutate(
+    mean_dist = map(comps, mean_distance),
+    diameter = map(comps, diameter)
+    ) |> 
+  unnest(c(mean_dist, diameter))
+```
+
+The table below shows the mean distance and diameter of each of the `r length(comps)` components.
+
+```{r diameters_2, message = TRUE}
+comps_info_df |> 
+  select(-c(comp_frc, comp_pct)) |> 
+  knitr::kable(
+    col.names = c("id", "Component Size", "Mean Distance", "Diameter"),
+    align = "r",
+    digits = 2)
+```
+
+#### **Clustering coefficient**
+
+The clustering coefficient (or transitivity) is defined as
+
+$$
+C=\frac{(\text{number of triangles})\times 3}{(\text{number of connected triples})}.
+$$
+_Compute the clustering coefficients of the physicians network._
+```{r clustering_1}
+physician_cc = transitivity(physician_graph)
+```
+
+The clustering coefficient for this network is **`r physician_cc |> round(3)`**. This means that **`r 100*physician_cc |> round(3)`%** of connected triples in the Physicians network are closed.
+
+
+#### **Assortativity**
+
+A network is assortative if a significant fraction of the edges run between nodes of the same type, ie. nodes with similar amounts of edges. A "significant fraction" means that the fraction of edges between same-type nodes is significantly greater than what we would expect if the edges were randomly placed.
+
+```{r asrt_1}
+physician_asrt = assortativity_degree(physician_graph)
+```
+
+The assortativity coefficient for the Physician network is **`r physician_asrt |> round(3)`**. Since this value is negative, we can say that *dis*similar nodes tend to connect to each other in this network.
+
+## **Visualizing the Network**
+
+
+```{r}
+plot(physician_graph,
+     vertex.size = 5,
+     vertex.color = "pink")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
