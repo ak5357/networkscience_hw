@@ -110,7 +110,7 @@ xmin = fit$xmin
 xmax = max(physician_degrees)
 ```
 
-The power-law exponent is **`r alpha`**. The xmin is **`r xmin`** and xmax is **`r xmax`**.
+The power-law exponent is **`r alpha |> round(3)`**. The xmin is **`r xmin`** and xmax is **`r xmax`**.
 
 ```{r power_law_fit_2}
 # Add a line to the log-log plot
@@ -163,7 +163,7 @@ comps_info_df = comps |>
   relocate(id)
 ```
 
-There are **`r n_comps` components** in the Physicians network. The sizes of the networks are listed below. The largest component has **`r max(select(comps_info_df, comp_size))` nodes**.
+There are **`r n_comps` components** in the Physicians network. This makes sense because Konnect's description of the Physicians network mentions that the physicans are located in four separate cities. Perhaps the four cities each form one of the components. The sizes of the components are listed below. The largest component has **`r max(select(comps_info_df, comp_size))` nodes**.
 
 ```{r components_3, message = TRUE}
 comps_info_df |> 
@@ -205,8 +205,9 @@ $$
 C=\frac{(\text{number of triangles})\times 3}{(\text{number of connected triples})}.
 $$
 _Compute the clustering coefficients of the physicians network._
-```{r clustering_1}
+```{r clustering_1, message = TRUE}
 physician_cc = transitivity(physician_graph)
+physician_cc
 ```
 
 The clustering coefficient for this network is **`r physician_cc |> round(3)`**. This means that **`r 100*physician_cc |> round(3)`%** of connected triples in the Physicians network are closed.
@@ -216,36 +217,10 @@ The clustering coefficient for this network is **`r physician_cc |> round(3)`**.
 
 A network is assortative if a significant fraction of the edges run between nodes of the same type, ie. nodes with similar amounts of edges. A "significant fraction" means that the fraction of edges between same-type nodes is significantly greater than what we would expect if the edges were randomly placed.
 
-```{r asrt_1}
+```{r asrt_1, message = TRUE}
 physician_asrt = assortativity_degree(physician_graph)
+physician_asrt
 ```
 
-The assortativity coefficient for the Physician network is **`r physician_asrt |> round(3)`**. Since this value is negative, we can say that *dis*similar nodes tend to connect to each other in this network.
-
-## **Visualizing the Network**
-
-
-```{r}
-plot(physician_graph,
-     vertex.size = 5,
-     vertex.color = "pink")
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+The assortativity coefficient for the Physician network is **`r physician_asrt |> round(3)`**. Since this value is negative, we can say that *dis*similar nodes tend to connect to each other in this network more than they would if the edges were randomly generated.
 
