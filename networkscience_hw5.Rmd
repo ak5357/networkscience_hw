@@ -24,11 +24,11 @@ library(tidyverse)
 library(ggplot2)
 ```
 
-## **Zebra** Network Dataset
+## **Iceland** Network Dataset
 
-"This is a directed social network of bottlenose dolphins. The nodes are the bottlenose dolphins (genus Tursiops) of a bottlenose dolphin community living off Doubtful Sound, a fjord in New Zealand (spelled fiord in New Zealand). An edge indicates a frequent association. The dolphins were observed between 1994 and 2001."
+"This is a network of sexual contacts of male homosexuals in Iceland, collected in 1992."
 
-_Data Source: [The Konnect Project](http://konect.cc/networks/moreno_zebra/)_
+_Data Source: [The Konnect Project](http://konect.cc/networks/moreno_iceland/)_
 
 ## **Data Import**
 
@@ -44,6 +44,22 @@ iceland =
   graph_from_edgelist()
 ```
 
+## **Basic Analysis/Visualization**
+
+There are **`r vcount(iceland)` nodes** and **`r ecount(iceland)` edges** in this network. Here is a visualization of the network using the FR layout. I tried the KK layout as well, but ultimately felt FR yielded a more visually organized result.
+
+```{r}
+plot(iceland,
+     layout=layout_with_fr,
+     vertex.label = NA,
+     vertex.size = 5,
+     vertex.color = "lightpink",
+     edge.width = 1.5,
+     edge.color = "maroon",
+     edge.arrow.size = 0,
+     main = "Fruchterman-Reingold (FR) Layout")
+```
+
 ## **Community Detection**
 
 **Greedy Algorithm**
@@ -52,16 +68,25 @@ The documentation for the network says that it is undirected. However, igraph re
 ```{r}
 is_directed(iceland)
 ic = cluster_fast_greedy(as_undirected(iceland))
-
 ```
 
+Using the greedy algorithm, how many communities are in the network?
+```{r}
+length(ic)
+```
 
+What are the sizes of these communities?
+```{r}
+sizes(ic)
+```
 
-
-
-
-
-
-
-
+Let's visualize the communities.
+```{r}
+plot(ic, iceland,
+     vertex.size = 5,
+     vertex.label = NA,
+     edge.arrow.size = 0.3,
+     #layout = layout_with_fr
+     )
+```
 
