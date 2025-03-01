@@ -1,0 +1,67 @@
+---
+title: "Network Science Homework 5"
+author: "Arghya Kannadaguli (ak5357)"
+date: "2025-03-01"
+output: html_document
+---
+
+**Assignment Description:** Select a real-world network, apply one of the community detection methods, and visualize the communities.
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  message = FALSE,
+  warning = FALSE,
+  #fig.width = 6,
+  #fig.asp = .8,
+  out.width = "90%",
+  fig.align = "center")
+```
+
+```{r libraries, ecoh = FALSE}
+library(igraph)
+library(tidyverse)
+library(ggplot2)
+```
+
+## **Zebra** Network Dataset
+
+"This is a directed social network of bottlenose dolphins. The nodes are the bottlenose dolphins (genus Tursiops) of a bottlenose dolphin community living off Doubtful Sound, a fjord in New Zealand (spelled fiord in New Zealand). An edge indicates a frequent association. The dolphins were observed between 1994 and 2001."
+
+_Data Source: [The Konnect Project](http://konect.cc/networks/moreno_zebra/)_
+
+## **Data Import**
+
+_Find a real-world network._
+
+Here we are pulling in the physicians network described above.
+```{r data_import}
+iceland =
+  readr::read_delim("data/iceland/out.iceland", skip = 1) |> 
+  janitor::remove_empty(which = "cols") |> 
+  janitor::clean_names() |> 
+  as.matrix() |> 
+  graph_from_edgelist()
+```
+
+## **Community Detection**
+
+**Greedy Algorithm**
+
+The documentation for the network says that it is undirected. However, igraph recognizes the iceland network as being directed, so we will pass it into the `cluster_fast_greedy()` function as an undirected graph, using the `as_undirected()` function.
+```{r}
+is_directed(iceland)
+ic = cluster_fast_greedy(as_undirected(iceland))
+
+```
+
+
+
+
+
+
+
+
+
+
+
