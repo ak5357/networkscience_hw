@@ -1,0 +1,66 @@
+---
+title: "Network Science Homework 6"
+author: "Arghya Kannadaguli (ak5357)"
+date: "2025-03-06"
+output: html_document
+---
+
+**Assignment Description:** Select a real-world network, test random node-removal and degree-based node removal to break down the network, compare which method works best.
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  message = FALSE,
+  warning = FALSE,
+  #fig.width = 6,
+  #fig.asp = .8,
+  out.width = "90%",
+  fig.align = "center")
+```
+
+```{r libraries, ecoh = FALSE}
+library(igraph)
+library(tidyverse)
+library(ggplot2)
+```
+
+## **Iceland** Network Dataset
+
+"This is a network of sexual contacts of male homosexuals in Iceland, collected in 1992."
+
+_Data Source: [The Konnect Project](http://konect.cc/networks/moreno_iceland/)_
+
+## **Data Import**
+
+_Find a real-world network._
+
+Here we are pulling in the physicians network described above.
+```{r data_import}
+iceland =
+  readr::read_delim("data/iceland/out.iceland", skip = 1) |> 
+  janitor::remove_empty(which = "cols") |> 
+  janitor::clean_names() |> 
+  as.matrix() |> 
+  graph_from_edgelist()
+```
+
+## **Basic Analysis/Visualization**
+
+There are **`r vcount(iceland)` nodes** and **`r ecount(iceland)` edges** in this network. Here is a visualization of the network using the FR layout. I tried the KK layout as well, but ultimately felt FR yielded a more visually organized result.
+
+```{r}
+plot(iceland,
+     layout=layout_with_fr,
+     vertex.label = NA,
+     vertex.size = 5,
+     vertex.color = "lightpink",
+     edge.width = 1.5,
+     edge.color = "maroon",
+     edge.arrow.size = 0,
+     main = "Fruchterman-Reingold (FR) Layout")
+```
+
+
+
+
+
